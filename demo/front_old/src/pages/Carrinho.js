@@ -1,59 +1,77 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import axios from "axios";
 
-export default function Carrinho() {
-  const [carrinho, setCarrinho] = useState([]);
+const API_URL = 'http://localhost:8080/produtos/disponiveis';
+
+export default function HomeCliente() {
+  const [produtos, setProdutos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const dados = JSON.parse(localStorage.getItem("carrinho")) || [];
-    setCarrinho(dados);
+    carregarCatalogo();
   }, []);
 
-  function atualizarQuantidade(id, qtd) {
-    const novo = carrinho.map(item =>
-      item.id_produto === id ? { ...item, quantidade: qtd } : item
-    );
-    setCarrinho(novo);
-    localStorage.setItem("carrinho", JSON.stringify(novo));
-  }
+  const carregarCatalogo = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+      setProdutos(response.data);
+    } catch (error) {
+      console.error("Erro ao carregar o catálogo:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  function remover(id) {
-    const novo = carrinho.filter(item => item.id_produto !== id);
-    setCarrinho(novo);
-    localStorage.setItem("carrinho", JSON.stringify(novo));
-  }
+  // FUNÇÃO PARA ADICIONAR NO LOCALSTORAGE
+  const adicionarAoCarrinho = (produto) => {
+    const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho")) || [];
+    
+    // Procura se o produto já está no carrinho
+    const itemExiste = carrinhoAtual.find(item => item.idProduto === produto.idProduto);
 
-  function finalizarCompra() {
-    alert("Pedido realizado com sucesso!");
-    localStorage.removeItem("carrinho");
-    setCarrinho([]);
-  }
+    let novoCarrinho;
+    if (itemExiste) {
+      novoCarrinho = carrinhoAtual.map(item =>
+        item.idProduto === produto.idProduto 
+          ? { ...item, quantidade: item.quantidade + 1 } 
+          : item
+      );
+    } else {
+      // Adiciona novo item com quantidade inicial 1
+      novoCarrinho = [...carrinhoAtual, { ...produto, quantidade: 1 }];
+    }
+
+    localStorage.setItem("carrinho", JSON.stringify(novoCarrinho));
+    alert(`${produto.nome} adicionado ao carrinho!`);
+  };
+
+  if (loading) return <p>Carregando catálogo...</p>;
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>🛒 Carrinho</h1>
+    <div style={styles.container}>
+      <header style={styles.header}>
+        <h2>🍴 Cardápio da Cantina</h2>
+      </header>
 
-      {carrinho.map(item => (
-        <div key={item.id_produto} style={itemStyle}>
-          <strong>{item.nome}</strong>
-          <input
-            type="number"
-            min="1"
-            value={item.quantidade}
-            onChange={e => atualizarQuantidade(item.id_produto, Number(e.target.value))}
-          />
-          <button onClick={() => remover(item.id_produto)}>❌</button>
-        </div>
-      ))}
-
-      {carrinho.length > 0 && (
-        <button style={btn} onClick={finalizarCompra}>
-          Finalizar Compra
-        </button>
-      )}
-
-      <br /><br />
-      <Link to="/cliente">⬅ Voltar</Link>
+      <div style={styles.grid}>
+        {produtos.map((p) => (
+          <div key={p.idProduto} style={styles.card}>
+            {p.imagemUrl && <img src={p.imagemUrl} alt={p.nome} style={styles.img} />}
+            <div style={styles.info}>
+              <h3>{p.nome}</h3>
+              <p>{p.descricao}</p>
+              <div style={styles.footerCard}>
+                <span style={styles.preco}>R$ {p.preco.toFixed(2)}</span>
+                {/* VINCULANDO A FUNÇÃO AO CLIQUE */}
+                <button style={styles.btnComprar} onClick={() => adicionarAoCarrinho(p)}>
+                  Adicionar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -25,6 +25,26 @@ export default function HomeCliente() {
     }
   };
 
+  const adicionarAoCarrinho = (produto) => {
+    const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho")) || [];
+
+    const itemExiste = carrinhoAtual.find(item => item.idProduto === produto.idProduto);
+
+    let novoCarrinho;
+    if (itemExiste) {
+      novoCarrinho = carrinhoAtual.map(item =>
+        item.idProduto === produto.idProduto 
+          ? { ...item, quantidade: item.quantidade + 1 } 
+          : item
+      );
+    } else {
+      novoCarrinho = [...carrinhoAtual, { ...produto, quantidade: 1 }];
+    }
+
+    localStorage.setItem("carrinho", JSON.stringify(novoCarrinho));
+    alert(`${produto.nome} adicionado ao carrinho!`);
+  };
+
   if (loading) return <p>Carregando delícias da cantina...</p>;
 
   return (
@@ -48,7 +68,7 @@ export default function HomeCliente() {
                 <p style={styles.descricao}>{p.descricao}</p>
                 <div style={styles.footerCard}>
                   <span style={styles.preco}>R$ {p.preco.toFixed(2)}</span>
-                  <button style={styles.btnComprar}>Adicionar</button>
+                  <button style={styles.btnComprar} onClick={() => adicionarAoCarrinho(p)}>Adicionar </button>
                 </div>
               </div>
             </div>
